@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "cockroachdb"
+  url      = env("DATABASE_URL")
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../ERD.svg"
+}
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  isEnabled     Boolean    @default(true)
+  securityStamp String     @default(cuid())
+  hashPassword  String
+  email         String     @unique
+  Role          Role       @relation(fields: [roleId], references: [id])
+  roleId        String     @unique @db.Uuid
+  fullName      String
+  dateOfBirth   String
+  phone         String
+  Gender        Gender
+  address       String
+  avatar        Attachment @relation(fields: [attachmentId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime?  @updatedAt
+  Service       Service?
+  attachmentId  String     @unique @db.Uuid
+  Booking       Booking[]
+}
+
+model Service {
+  id           String      @id @default(uuid()) @db.Uuid
+  isEnabled    Boolean     @default(true)
+  location     String
+  degree       Degree      @relation(fields: [degreeId], references: [id])
+  experience   String?
+  speciality   Specialty[]
+  description  String?
+  availability Int[]
+  degreeId     String      @db.Uuid
+  User         User        @relation(fields: [userId], references: [id])
+  userId       String      @unique @db.Uuid
+  Schedule     Schedule[] // lịch khám
+  relatedUrl   String?
+  logo         Attachment?
+  Booking      Booking[]
+}
+
+model Booking {
+  id            String        @id @default(uuid()) @db.Uuid
+  isEnabled     Boolean       @default(true)
+  schedule      Schedule[]
+  medicalRecord String?
+  symptom       String?
+  speciality    Specialty     @relation(fields: [specialtyId], references: [id])
+  Patient       User          @relation(fields: [patientId], references: [id])
+  patientId     String        @unique @db.Uuid
+  service       Service       @relation(fields: [serviceId], references: [id])
+  serviceId     String        @unique @db.Uuid
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime?     @updatedAt
+  specialtyId   String        @db.Uuid
+  description   String? //Reason for booking
+  relatedUrl    String?
+  status        BookingStatus
+  Transaction   Transaction?
+}
+
+model Transaction {
+  id                String   @id @default(uuid()) @db.Uuid
+  isEnabled         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  booking           Booking  @relation(fields: [bookingId], references: [id])
+  bookingId         String   @unique @db.Uuid
+  linkedTransaction String   @unique
+}
+
+enum BookingStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+  PROCESSING
+  DONE
+}
+
+model Schedule {
+  id        String   @id @default(uuid()) @db.Uuid
+  slot      Int
+  date      DateTime
+  isEnabled Boolean  @default(true)
+  createdAt DateTime @default(now())
+  Service   Service? @relation(fields: [serviceId], references: [id])
+  serviceId String?  @db.Uuid
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  bookingId String?  @db.Uuid
+}
+
+model Attachment {
+  id        String    @id @default(uuid()) @db.Uuid
+  isEnabled Boolean   @default(true)
+  url       String
+  type      String
+  uid       String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  User      User?
+  Service   Service?  @relation(fields: [serviceId], references: [id])
+  serviceId String?   @unique @db.Uuid
+}
+
+model Specialty {
+  id        String    @id @default(uuid()) @db.Uuid
+  isEnabled Boolean   @default(true)
+  name      String
+  Service   Service[]
+  Booking   Booking[]
+}
+
+model Degree {
+  id        String    @id @default(uuid()) @db.Uuid
+  isEnabled Boolean   @default(true)
+  name      String
+  Service   Service[]
+}
+
+model Role {
+  id        String  @id @default(uuid()) @db.Uuid
+  isEnabled Boolean @default(true)
+  name      String  @unique
+  User      User?
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
